@@ -72,7 +72,7 @@ Open: http://localhost:8501
 - Sensitive fields (e.g., resident registration numbers) are highly dependent on rendering quality; prefer text-layer extraction when available.
 - Enabling multi-pass / strict re-checks can increase latency.
 
-This project is a **Proof-of-Concept**, not a production system.
+This project is a **Proof-of-Concept**, not a product.
 
 ---
 
@@ -152,4 +152,4 @@ streamlit run app.py
 - 주민등록번호 등 민감 필드는 렌더링 품질에 민감하므로, 가능하면 텍스트 레이어 우선 추출이 유리합니다.
 - 멀티콜/정밀 재판독을 활성화하면 지연 시간이 증가할 수 있습니다.
 
-본 프로젝트는 **Proof-of-Concept**이며, 프로덕션 시스템이 아닙니다.
+본 프로젝트는 **Proof-of-Concept**이며, 실제 프로덕트가 아닙니다.
