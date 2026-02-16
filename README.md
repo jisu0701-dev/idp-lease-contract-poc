@@ -102,14 +102,14 @@ streamlit run app.py
 
 ---
 
-## POC v1 Stability Report
+## Validation
+- Verified: reproducibility (repeat runs), safety routing (Human-Review on uncertain cases), and decision logging.
 
-- Test set size: __ 건
-- Total runs: __ 회
-- Role swap errors: __ 회
-- Parsing failures: __ 회
-- Avg latency: __ 초
-- Max latency: __ 초
+
+## 검증(Validation)
+- 반복 실행 시 결과가 일관되게 재현되는지 확인했습니다.
+- 불확실/위험 케이스는 자동 확정하지 않고 Human-Review로 라우팅되도록 동작을 확인했습니다.
+
 
 ### Known Limitations
 - Gemini Vision 2.0 한글 모음(ㅗ/ㅜ) 오인식 가능성 존재
