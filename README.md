@@ -1,12 +1,22 @@
-****What it does**: “임대차 계약서에서 주요 필드를 추출하고, 사용자 입력과 일치 여부를 검증하는 POC”**
+# 임대차 계약서 자동 검증기 (Rental Contract Auto Verifier)
 
-****How to run****
+This is a **Proof-of-Concept (POC)** Streamlit web app that extracts key fields from Korean lease contracts (임대차 계약서) and validates them against user-provided checklist inputs.  
+It uses **Google Gemini Vision** to parse document content and highlights mismatches (e.g., deposit, address, contract period) in a human-review-friendly table.
 
+---
+
+## What it does
+- Extracts: address, deposit, monthly rent, contract period, landlord/tenant name, resident registration number (**handled carefully / masked where applicable**)
+- Compares document values vs checklist values and shows match/mismatch results
+- Optionally provides debug output (**may include PII if enabled**)
+
+---
+
+## How to run
+```bash
 pip install -r requirements.txt
-
 streamlit run app.py
 
-**Notes: “실데이터 금지/PII 주의”**
 
 # 임대차 계약서 자동 검증기 (Rental Contract Auto Verifier)
 
