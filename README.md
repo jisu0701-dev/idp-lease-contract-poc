@@ -1,3 +1,7 @@
+“Workflow: document → extraction(Gemini Vision) → structured JSON → rule-based validation → Human-Review routing”
+“This is not a model-training repo; it demonstrates production-like orchestration & safety patterns for DocAI.”
+
+
 # Rental Contract Auto Verifier (IDP Lease Contract POC)
 
 A **Proof-of-Concept (POC)** Streamlit web app that extracts key fields from Korean lease contracts and validates them against user-provided checklist inputs.  
