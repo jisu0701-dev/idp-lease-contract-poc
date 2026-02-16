@@ -1,5 +1,8 @@
-“Workflow: document → extraction(Gemini Vision) → structured JSON → rule-based validation → Human-Review routing”
-“This is not a model-training repo; it demonstrates production-like orchestration & safety patterns for DocAI.”
+**Workflow**: document → extraction (Gemini Vision) → structured JSON → rule-based validation → Human-Review routing  
+**Note**: This is not a model-training repo; it demonstrates production-like orchestration & safety patterns for DocAI.
+
+
+
 
 
 # Rental Contract Auto Verifier (IDP Lease Contract POC)
