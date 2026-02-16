@@ -1,3 +1,13 @@
+****What it does**: “임대차 계약서에서 주요 필드를 추출하고, 사용자 입력과 일치 여부를 검증하는 POC”**
+
+****How to run****
+
+pip install -r requirements.txt
+
+streamlit run app.py
+
+**Notes: “실데이터 금지/PII 주의”**
+
 # 임대차 계약서 자동 검증기 (Rental Contract Auto Verifier)
 
 Streamlit + **Google Gemini 2.0 Flash**를 사용한 임대차 계약서 이미지/PDF 검증 웹 앱입니다.  
