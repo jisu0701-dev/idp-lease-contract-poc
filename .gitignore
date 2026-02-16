@@ -1,0 +1,25 @@
+cat > .gitignore <<'EOF'
+# secrets
+.env
+*.env
+.streamlit/secrets.toml
+
+# local artifacts / logs (DO NOT COMMIT)
+.local/
+decision_log.csv
+*.log
+
+# uploaded docs/images (DO NOT COMMIT)
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+EOF
