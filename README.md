@@ -3,6 +3,8 @@
 A **Proof-of-Concept (POC)** Streamlit web app that extracts key fields from Korean lease contracts (임대차 계약서) and validates them against user-provided checklist inputs.  
 It uses **Google Gemini Vision** (and PDF text-layer when available) to parse document content and highlights mismatches (e.g., deposit, address, contract period) in a human-review-friendly table.
 
+Built to prototype an end-to-end IDP workflow for a repetitive real-world document review task (extraction → validation → safe human review).
+
 **Workflow**: document → extraction (text-layer / Gemini Vision) → structured JSON → rule-based validation → Human-Review routing  
 **Scope**: Not a model-training repo. Demonstrates orchestration, validation logic, and safety routing patterns for Document AI.
 
@@ -76,10 +78,16 @@ This project is a **Proof-of-Concept**, not a product.
 
 ---
 
+<details>
+<summary><strong>한국어 버전 보기</strong></summary>
+<br/>
+
 # 임대차 계약서 자동 검증기 (IDP Lease Contract POC)
 
-이 프로젝트는 **주거용 부동산 임대차 계약서(대한민국)**에서 주요 항목을 추출하고, 사용자가 입력한 체크리스트 값과 일치/불일치 여부를 검증하는 **개념증명(POC)** Streamlit 웹 앱입니다.  
-**Google Gemini Vision**(및 PDF 텍스트 레이어가 있는 경우 이를 우선 활용)을 사용해 문서 내용을 파싱하고, 보증금·주소·계약기간 등 불일치 항목을 휴먼 리뷰가 쉬운 표 형태로 표시합니다.
+이 프로젝트는 **대한민국 주거용 임대차 계약서(임대차 계약서)**에서 핵심 항목을 추출하고, 사용자가 입력한 체크리스트 값과 일치/불일치 여부를 검증하는 **개념증명(POC)** Streamlit 웹 앱입니다.  
+**Google Gemini Vision**(그리고 PDF에 텍스트 레이어가 있는 경우 이를 우선 활용)을 통해 문서 내용을 파싱하고, 보증금·주소·계약기간 등 불일치 항목을 휴먼 리뷰가 쉬운 표 형태로 표시합니다.
+
+반복적으로 발생하는 실무 문서 검토 업무를 대상으로, 추출 → 검증 → 안전한 휴먼리뷰 라우팅까지 포함한 IDP 워크플로우를 end-to-end로 개념증명하기 위해 제작했습니다.
 
 **워크플로우**: 문서 → 추출(텍스트 레이어 / Gemini Vision) → 구조화 JSON → 규칙 기반 검증 → Human Review 라우팅  
 **범위**: 모델 학습용 작업물이 아닙니다. 문서 AI 관점의 오케스트레이션, 검증 로직, 안전 라우팅 패턴을 보여주는 POC입니다.
@@ -153,3 +161,5 @@ streamlit run app.py
 - 멀티콜/정밀 재판독을 활성화하면 지연 시간이 증가할 수 있습니다.
 
 본 작업물은 **Proof-of-Concept**이며, 실제 프로덕트가 아닙니다.
+
+</details>
