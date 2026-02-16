@@ -74,9 +74,8 @@ def parse_result_json(raw: str) -> Optional[dict[str, Any]]:
                         or ""
                     )
                 item_name = obj.get("item", "")
-                obj["item"] = (
-                    item_name.replace("식별정보 원문", "생년월일")
-                    .replace(" 정보", " 생년월일")
+                obj["item"] = item_name.replace("식별정보 원문", "생년월일").replace(
+                    " 정보", " 생년월일"
                 )
                 new_items.append(obj)
             else:
@@ -85,20 +84,28 @@ def parse_result_json(raw: str) -> Optional[dict[str, Any]]:
                     if isinstance(v, dict):
                         for sub_k, sub_v in v.items():
                             combined_key = f"{k.replace(' 정보', '')} {sub_k}"
-                            new_items.append({
-                                "item": combined_key,
-                                "contract_value": str(sub_v) if sub_v is not None else "",
-                            })
+                            new_items.append(
+                                {
+                                    "item": combined_key,
+                                    "contract_value": (
+                                        str(sub_v) if sub_v is not None else ""
+                                    ),
+                                }
+                            )
                     elif k not in ("item", "contract_value", "checklist_value"):
-                        new_key = k.replace("식별정보 원문", "생년월일").replace(" 정보", " 생년월일")
+                        new_key = k.replace("식별정보 원문", "생년월일").replace(
+                            " 정보", " 생년월일"
+                        )
                         val = v
                         if isinstance(v, dict):
                             val = v.get("생년월일") or v.get("식별정보") or str(v)
-                        new_items.append({
-                            "item": new_key,
-                            "contract_value": str(val) if val is not None else "",
-                            "checklist_value": obj.get("checklist_value"),
-                        })
+                        new_items.append(
+                            {
+                                "item": new_key,
+                                "contract_value": str(val) if val is not None else "",
+                                "checklist_value": obj.get("checklist_value"),
+                            }
+                        )
                     else:
                         new_items.append(obj)
                         break
@@ -134,7 +141,11 @@ def build_final_items(parsed: dict[str, Any]) -> dict[str, Any]:
             b6 = _rrn_to_birth6(rrn_val)
             if b6:
                 if not birth_row:
-                    birth_row = {"item": key_birth, "contract_value": None, "checklist_value": None}
+                    birth_row = {
+                        "item": key_birth,
+                        "contract_value": None,
+                        "checklist_value": None,
+                    }
                     items.append(birth_row)
                     by_item[key_birth] = birth_row
                 birth_row["contract_value"] = b6
@@ -152,11 +163,13 @@ def build_final_items(parsed: dict[str, Any]) -> dict[str, Any]:
 
         if ch and not _cross_check_contract_vs_checklist(item_name, cv, ch):
             r["is_doc_mismatch"] = True
-            mismatches.append({
-                "item_name": item_name,
-                "contract_value": cv,
-                "checklist_value": ch,
-            })
+            mismatches.append(
+                {
+                    "item_name": item_name,
+                    "contract_value": cv,
+                    "checklist_value": ch,
+                }
+            )
     return {
         "items": items,
         "human_review": bool(mismatches),

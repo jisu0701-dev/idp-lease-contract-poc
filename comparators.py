@@ -102,7 +102,11 @@ def compare_address(contract_addr: str, user_addr: str) -> tuple[bool, str]:
     c_gu_dong = _extract_gu_dong_only(c)
     u_gu_dong = _extract_gu_dong_only(u)
     if c_gu_dong and u_gu_dong:
-        if c_gu_dong != u_gu_dong and u_gu_dong not in c_gu_dong and c_gu_dong not in u_gu_dong:
+        if (
+            c_gu_dong != u_gu_dong
+            and u_gu_dong not in c_gu_dong
+            and c_gu_dong not in u_gu_dong
+        ):
             return (False, "행정 구역(구/동·리) 불일치")
 
     c_dong = _extract_dong_number(c)
@@ -114,7 +118,12 @@ def compare_address(contract_addr: str, user_addr: str) -> tuple[bool, str]:
     # 우선순위 1: 행정구역(동) + 지번 + 동/호수 모두 일치 (건물명 무관)
     if c_gu_dong and u_gu_dong and c_gu_dong == u_gu_dong:
         if c_jibon and u_jibon and c_jibon == u_jibon:
-            if c_dong is not None and u_dong is not None and c_ho is not None and u_ho is not None:
+            if (
+                c_dong is not None
+                and u_dong is not None
+                and c_ho is not None
+                and u_ho is not None
+            ):
                 if c_dong == u_dong and c_ho == u_ho:
                     return (True, "")
             # 동/호수 없어도 행정구역+지번만 맞으면 통과
@@ -123,7 +132,12 @@ def compare_address(contract_addr: str, user_addr: str) -> tuple[bool, str]:
                     return (True, "")
 
     # 우선순위 2: 동·호수만 정확히 맞으면 통과 (지번 유무와 무관)
-    if c_dong is not None and u_dong is not None and c_ho is not None and u_ho is not None:
+    if (
+        c_dong is not None
+        and u_dong is not None
+        and c_ho is not None
+        and u_ho is not None
+    ):
         if c_dong == u_dong and c_ho == u_ho:
             return (True, "")
 
@@ -135,7 +149,9 @@ def compare_address(contract_addr: str, user_addr: str) -> tuple[bool, str]:
     # 계약서에 지번이 없어도 사용자 지번이 행정구역(동) 뒤에 붙어 있으면 일치로 간주
     if u_dong is None and u_ho is None:
         if c_gu_dong and u_gu_dong and c_gu_dong == u_gu_dong:
-            if (c_jibon and u_jibon and c_jibon == u_jibon) or (c_jibon is None and u_jibon is not None):
+            if (c_jibon and u_jibon and c_jibon == u_jibon) or (
+                c_jibon is None and u_jibon is not None
+            ):
                 return (True, "")
 
     has_building_dong = c_dong is not None or u_dong is not None
@@ -178,9 +194,21 @@ def _parse_korean_amount_to_int(text: str) -> Optional[int]:
     s = s.replace("금", "")
 
     num_map = {
-        "영": 0, "공": 0,
-        "일": 1, "이": 2, "삼": 3, "사": 4, "오": 5, "육": 6, "칠": 7, "팔": 8, "구": 9,
-        "한": 1, "두": 2, "세": 3, "네": 4,
+        "영": 0,
+        "공": 0,
+        "일": 1,
+        "이": 2,
+        "삼": 3,
+        "사": 4,
+        "오": 5,
+        "육": 6,
+        "칠": 7,
+        "팔": 8,
+        "구": 9,
+        "한": 1,
+        "두": 2,
+        "세": 3,
+        "네": 4,
     }
     small_unit = {"십": 10, "백": 100, "천": 1000}
 
@@ -338,7 +366,9 @@ def _parse_user_period(user_value: str) -> tuple[Optional[str], Optional[str]]:
     return (None, None)
 
 
-def _python_compare_contract_period(contract_value: str, user_value: str) -> tuple[bool, str]:
+def _python_compare_contract_period(
+    contract_value: str, user_value: str
+) -> tuple[bool, str]:
     """계약기간 비교. 사용자 입력 비어 있으면 (False, '사용자 입력 누락')."""
     if not (user_value or "").strip():
         return (False, "사용자 입력 누락")
@@ -352,9 +382,13 @@ def _python_compare_contract_period(contract_value: str, user_value: str) -> tup
         return (True, "")
     error_reasons: list[str] = []
     if contract_start != user_start:
-        error_reasons.append(f"시작일 불일치 (계약서: {contract_start} / 입력: {user_start})")
+        error_reasons.append(
+            f"시작일 불일치 (계약서: {contract_start} / 입력: {user_start})"
+        )
     if contract_end != user_end:
-        error_reasons.append(f"종료일 불일치 (계약서: {contract_end} / 입력: {user_end})")
+        error_reasons.append(
+            f"종료일 불일치 (계약서: {contract_end} / 입력: {user_end})"
+        )
     if len(error_reasons) == 2:
         return (False, "기간 전체 불일치")
     return (False, error_reasons[0])
@@ -477,7 +511,12 @@ def _highlight_period_diff(contract_val: str, user_val: str) -> str:
     contract_end = _parse_date_from_text(contract_parts[1])
     user_start = _parse_date_from_text(user_parts[0])
     user_end = _parse_date_from_text(user_parts[1])
-    if contract_start is None or contract_end is None or user_start is None or user_end is None:
+    if (
+        contract_start is None
+        or contract_end is None
+        or user_start is None
+        or user_end is None
+    ):
         return f'<span style="color:#ef4444; font-weight:bold;">{html.escape(user_val)}</span>'
     start_diff = contract_start != user_start
     end_diff = contract_end != user_end

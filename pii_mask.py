@@ -19,6 +19,7 @@ def _get_reader():
     global _reader
     if _reader is None:
         import easyocr
+
         _reader = easyocr.Reader(["ko", "en"], gpu=False)
     return _reader
 
@@ -34,7 +35,7 @@ def mask_pii_in_image(pil_img: PILImage.Image) -> PILImage.Image:
 
     results = reader.readtext(img_bgr)
 
-    for (bbox, text, prob) in results:
+    for bbox, text, prob in results:
         clean_text = text.replace(" ", "")
         if "-" in clean_text:
             after_hyphen = clean_text.split("-")[-1]

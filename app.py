@@ -77,17 +77,32 @@ def get_inputs(uploaded_file) -> dict:
     if name.endswith(".pdf"):
         pdf_text = extract_pdf_text(raw, max_pages=3)
         if has_text_layer(pdf_text, min_chars=200):
-            return {"mode": "pdf_text", "pdf_text": pdf_text, "images_b64": [], "mimes": []}
+            return {
+                "mode": "pdf_text",
+                "pdf_text": pdf_text,
+                "images_b64": [],
+                "mimes": [],
+            }
         try:
             img_bytes_list = pdf_to_images_bytes(raw, max_pages=3, dpi=300)
         except ValueError:
             return {"mode": "none", "pdf_text": "", "images_b64": [], "mimes": []}
         b64_list = [base64.b64encode(b).decode("utf-8") for b in img_bytes_list]
-        return {"mode": "vision_images", "pdf_text": "", "images_b64": b64_list, "mimes": ["png"] * len(b64_list)}
+        return {
+            "mode": "vision_images",
+            "pdf_text": "",
+            "images_b64": b64_list,
+            "mimes": ["png"] * len(b64_list),
+        }
 
     b64 = base64.b64encode(raw).decode("utf-8")
     mime = "jpeg" if name.endswith((".jpg", ".jpeg")) else "png"
-    return {"mode": "vision_images", "pdf_text": "", "images_b64": [b64], "mimes": [mime]}
+    return {
+        "mode": "vision_images",
+        "pdf_text": "",
+        "images_b64": [b64],
+        "mimes": [mime],
+    }
 
 
 def extract_rrn_from_text(pdf_text: str) -> list[str]:
@@ -164,7 +179,8 @@ st.set_page_config(
 )
 
 # 커스텀 CSS: 깔끔한 UI
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main-header {
         font-size: 2rem;
@@ -210,7 +226,9 @@ st.markdown("""
         font-size: 1rem;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 def _get_user_value_for_item(item_name: str, user_input: dict) -> str:
@@ -219,7 +237,9 @@ def _get_user_value_for_item(item_name: str, user_input: dict) -> str:
         "주소": "address",
         "보증금": "deposit",
         "월세": "rent",
-        "계약기간": lambda u: f"{u.get('start_date', '')} ~ {u.get('end_date', '')}".strip().strip("~").strip(),
+        "계약기간": lambda u: f"{u.get('start_date', '')} ~ {u.get('end_date', '')}".strip()
+        .strip("~")
+        .strip(),
         "임대인 성명": "lessor_name",
         "임대인 생년월일": "lessor_dob",
         "임차인 성명": "lessee_name",
@@ -302,7 +322,9 @@ def render_result_with_icons(
 
     st.markdown("#### 📊 항목별 일치 여부")
     if blank_form:
-        st.info("빈 양식(템플릿)으로 판단되어 자동 비교를 생략하고 Human-Review로 분기했습니다.")
+        st.info(
+            "빈 양식(템플릿)으로 판단되어 자동 비교를 생략하고 Human-Review로 분기했습니다."
+        )
     data: list[list[Any]] = []
 
     for row in items:
@@ -320,7 +342,9 @@ def render_result_with_icons(
             icon = "—"
             remark_parts = ['<span style="color:#6b7280;">입력값 없음(빈 양식)</span>']
         else:
-            match_val, comment = _run_python_comparison(item_name, contract_raw, user_raw)
+            match_val, comment = _run_python_comparison(
+                item_name, contract_raw, user_raw
+            )
             remark_parts: list[str] = []
 
             if is_doc_mismatch:
@@ -335,7 +359,9 @@ def render_result_with_icons(
                 )
 
             if is_doc_mismatch:
-                icon = '<span style="color:#ca8a04; font-weight:bold;">⚠️ 확인필요</span>'
+                icon = (
+                    '<span style="color:#ca8a04; font-weight:bold;">⚠️ 확인필요</span>'
+                )
             elif match_val:
                 icon = "✅ O"
             else:
@@ -344,12 +370,15 @@ def render_result_with_icons(
 
         # JSON 원본값 그대로 사용 (월세 공란/null은 표시만 "0"으로)
         display_contract = contract_raw
-        if item_name == "월세" and (str(contract_raw or "").strip() in ("", "null", "None")):
+        if item_name == "월세" and (
+            str(contract_raw or "").strip() in ("", "null", "None")
+        ):
             display_contract = "0"
         # ✅ [추가] 보증금/월세는 UI 표시용으로 숫자 정규화
         if item_name in ("보증금", "월세"):
             try:
                 from comparators import _parse_amount_from_text
+
                 n = _parse_amount_from_text(contract_raw, item_name)
                 if n is not None:
                     display_contract = _format_amount_for_display(str(n))
@@ -359,13 +388,19 @@ def render_result_with_icons(
         if item_name == "계약기간":
             try:
                 from comparators import _parse_dates_from_period_text
+
                 s, e = _parse_dates_from_period_text(contract_raw)
                 if s and e:
                     display_contract = f"{s.replace('-', '')} ~ {e.replace('-', '')}"
             except Exception:
                 pass
         # 주민번호 마스킹은 표시용으로만 별도 적용
-        if item_name in ("임대인 생년월일", "임차인 생년월일", "임대인 주민등록번호", "임차인 주민등록번호"):
+        if item_name in (
+            "임대인 생년월일",
+            "임차인 생년월일",
+            "임대인 주민등록번호",
+            "임차인 주민등록번호",
+        ):
             display_user = _mask_jumin(user_raw)
         else:
             display_user = user_raw
@@ -378,7 +413,14 @@ def render_result_with_icons(
             display_user = '<span style="color:#6b7280;">-</span>'
         else:
             if not match_val:
-                if item_name in ("보증금", "월세", "임대인 생년월일", "임차인 생년월일", "임대인 주민등록번호", "임차인 주민등록번호"):
+                if item_name in (
+                    "보증금",
+                    "월세",
+                    "임대인 생년월일",
+                    "임차인 생년월일",
+                    "임대인 주민등록번호",
+                    "임차인 주민등록번호",
+                ):
                     display_user = f'<span style="color:#ef4444; font-weight:bold;">{html.escape(display_user)}</span>'
                 elif item_name == "계약기간":
                     display_user = _highlight_period_diff(contract_raw, display_user)
@@ -395,8 +437,12 @@ def render_result_with_icons(
         name = m.get("item_name", "")
         cv = m.get("contract_value", "")
         chv = m.get("checklist_value", "")
-        cv_display = _format_amount_for_display(cv) if name in ("보증금", "월세") else cv
-        chv_display = _format_amount_for_display(chv) if name in ("보증금", "월세") else chv
+        cv_display = (
+            _format_amount_for_display(cv) if name in ("보증금", "월세") else cv
+        )
+        chv_display = (
+            _format_amount_for_display(chv) if name in ("보증금", "월세") else chv
+        )
         etc_parts.append(
             f"⚠️ 확인설명서 내용 불일치: [{name}] 본문({cv_display}) vs 확인설명서({chv_display})"
         )
@@ -407,12 +453,16 @@ def render_result_with_icons(
 
     if etc_parts:
         etc_lines = "<br />".join(etc_parts)
-        etc_display = f'<span style="color:#ef4444; font-weight:bold;">{etc_lines}</span>'
+        etc_display = (
+            f'<span style="color:#ef4444; font-weight:bold;">{etc_lines}</span>'
+        )
         data.append(["기타사항", "-", "-", "", etc_display])
 
     columns = ["항목", "계약서 내용", "사용자 입력", "일치 여부", "비고 (불일치 시)"]
     df = pd.DataFrame(data, columns=columns)
-    html_table = df.to_html(escape=False, index=False, classes=["verifier-result-table"])
+    html_table = df.to_html(
+        escape=False, index=False, classes=["verifier-result-table"]
+    )
     st.markdown(html_table, unsafe_allow_html=True)
     st.markdown("---")
     if analysis_text:
@@ -431,11 +481,15 @@ with st.sidebar:
         key="api_key",
     )
     st.markdown("---")
-    st.caption("임대차 계약서 이미지 또는 PDF를 업로드하고, 입력한 정보와 비교 검증합니다.")
+    st.caption(
+        "임대차 계약서 이미지 또는 PDF를 업로드하고, 입력한 정보와 비교 검증합니다."
+    )
 
 
 # ----- 메인 화면 -----
-st.markdown('<p class="main-header">📋 임대차 계약서 자동 검증기</p>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="main-header">📋 임대차 계약서 자동 검증기</p>', unsafe_allow_html=True
+)
 st.markdown(
     '<p class="sub-header">계약서 이미지/PDF를 업로드하고 입력 정보와 비교해 보세요.</p>',
     unsafe_allow_html=True,
@@ -451,11 +505,19 @@ address = st.text_input(
 st.markdown("**임대인·임차인 정보**")
 col_lessor, col_lessee = st.columns(2)
 with col_lessor:
-    lessor_name = st.text_input("임대인(집주인) 성명", placeholder="홍길동", key="lessor_name")
-    lessor_dob = st.text_input("임대인(집주인) 생년월일(6자리)", placeholder="900101", key="lessor_dob")
+    lessor_name = st.text_input(
+        "임대인(집주인) 성명", placeholder="홍길동", key="lessor_name"
+    )
+    lessor_dob = st.text_input(
+        "임대인(집주인) 생년월일(6자리)", placeholder="900101", key="lessor_dob"
+    )
 with col_lessee:
-    lessee_name = st.text_input("임차인(세입자) 성명", placeholder="김철수", key="lessee_name")
-    lessee_dob = st.text_input("임차인(세입자) 생년월일(6자리)", placeholder="850315", key="lessee_dob")
+    lessee_name = st.text_input(
+        "임차인(세입자) 성명", placeholder="김철수", key="lessee_name"
+    )
+    lessee_dob = st.text_input(
+        "임차인(세입자) 생년월일(6자리)", placeholder="850315", key="lessee_dob"
+    )
 
 col1, col2 = st.columns(2)
 with col1:
@@ -493,7 +555,9 @@ uploaded_files = st.file_uploader(
 
 # 업로드 파일 bytes 저장 (rerun 대비)
 if uploaded_files:
-    st.session_state["uploaded_files_data"] = [(f.name, f.getvalue()) for f in uploaded_files]
+    st.session_state["uploaded_files_data"] = [
+        (f.name, f.getvalue()) for f in uploaded_files
+    ]
 
 final_address = (address or "").strip()
 
@@ -529,7 +593,9 @@ if analyze_clicked:
         # 버튼 클릭 시점의 파일: 위젯 값 우선, 없으면 session_state 보관분 사용
         files_to_use = uploaded_files
         if not files_to_use and st.session_state.get("uploaded_files_data"):
-            files_to_use = [_BytesFile(n, b) for n, b in st.session_state["uploaded_files_data"]]
+            files_to_use = [
+                _BytesFile(n, b) for n, b in st.session_state["uploaded_files_data"]
+            ]
         if not files_to_use:
             st.warning("계약서 파일을 먼저 업로드해 주세요.")
         else:
@@ -540,7 +606,9 @@ if analyze_clicked:
                         st.error("이미지를 읽을 수 없습니다.")
                     else:
                         analysis = call_gemini_vision(api_key, images_b64, mimes)
-                        doc_type = detect_doc_type_from_vision(api_key, images_b64, mimes)
+                        doc_type = detect_doc_type_from_vision(
+                            api_key, images_b64, mimes
+                        )
                         parsed = parse_result_json(analysis)
 
                         name_revised: dict[str, bool] = {}
@@ -555,7 +623,9 @@ if analyze_clicked:
                                     r"^\d+\)\s*", "", str(r.get("item", ""))
                                 ).replace("식별정보 원문", "생년월일")
                                 if "생년월일" in r["item"]:
-                                    r["contract_value"] = smart_clean_dob(str(r["contract_value"]))
+                                    r["contract_value"] = smart_clean_dob(
+                                        str(r["contract_value"])
+                                    )
 
                             for row in parsed["items"]:
                                 if "생년월일" not in row["item"]:
@@ -585,82 +655,147 @@ if analyze_clicked:
                                     continue
                                 c_val = str(row.get("contract_value", "") or "").strip()
                                 u_val = _get_user_value_for_item(item_name, user_input)
-                                match_val, _ = _run_python_comparison(item_name, c_val, u_val)
+                                match_val, _ = _run_python_comparison(
+                                    item_name, c_val, u_val
+                                )
                                 if not match_val or "식별불가" in c_val:
                                     name_mismatch = True
                                     break
                             if name_mismatch:
                                 result["human_review"] = True
-                                reason = (result.get("human_review_reason") or "").strip()
-                                result["human_review_reason"] = (reason + "; 성명 확인필요").strip(" ;") if "성명 확인필요" not in reason else reason
+                                reason = (
+                                    result.get("human_review_reason") or ""
+                                ).strip()
+                                result["human_review_reason"] = (
+                                    (reason + "; 성명 확인필요").strip(" ;")
+                                    if "성명 확인필요" not in reason
+                                    else reason
+                                )
 
                             # 월세 후처리: 0/공란이면 보강 OCR (표준 포함), 합리적 금액만 덮어쓰기
                             for row in result.get("items", []):
                                 if str(row.get("item", "")).strip() != "월세":
                                     continue
 
-                                contract_rent = str(row.get("contract_value", "") or "").strip()
+                                contract_rent = str(
+                                    row.get("contract_value", "") or ""
+                                ).strip()
                                 if contract_rent in ("", "null", "None"):
                                     contract_rent = "0"
 
-                                user_rent_raw = _get_user_value_for_item("월세", user_input)
+                                user_rent_raw = _get_user_value_for_item(
+                                    "월세", user_input
+                                )
                                 user_rent_num = None
                                 if user_rent_raw and str(user_rent_raw).strip():
                                     try:
-                                        user_rent_num = int(re.sub(r"\D", "", str(user_rent_raw)) or 0)
+                                        user_rent_num = int(
+                                            re.sub(r"\D", "", str(user_rent_raw)) or 0
+                                        )
                                     except ValueError:
                                         pass
-                                is_ai_rent_zero = contract_rent in ("0", "0원", "", "null", "None")
+                                is_ai_rent_zero = contract_rent in (
+                                    "0",
+                                    "0원",
+                                    "",
+                                    "null",
+                                    "None",
+                                )
 
-                                if is_ai_rent_zero and user_rent_num and user_rent_num != 0:
+                                if (
+                                    is_ai_rent_zero
+                                    and user_rent_num
+                                    and user_rent_num != 0
+                                ):
                                     result["human_review"] = True
-                                    reason = (result.get("human_review_reason") or "").strip()
+                                    reason = (
+                                        result.get("human_review_reason") or ""
+                                    ).strip()
                                     if "월세 확인필요" not in reason:
-                                        result["human_review_reason"] = (reason + "; 월세 확인필요").strip(" ;")
+                                        result["human_review_reason"] = (
+                                            reason + "; 월세 확인필요"
+                                        ).strip(" ;")
 
                                 strict_str = ""
                                 strict_num = None
                                 if is_ai_rent_zero:
-                                    one = extract_monthly_rent_onepass(api_key, images_b64, mimes)
-                                    if one.get("found") and one.get("rent_num") is not None:
+                                    one = extract_monthly_rent_onepass(
+                                        api_key, images_b64, mimes
+                                    )
+                                    if (
+                                        one.get("found")
+                                        and one.get("rent_num") is not None
+                                    ):
                                         strict_num = one["rent_num"]
-                                        strict_str = str(one.get("rent_raw") or strict_num)
+                                        strict_str = str(
+                                            one.get("rent_raw") or strict_num
+                                        )
                                     else:
-                                        strict_rent_ref = verify_rent_from_rent_box_strictly(
-                                            api_key, images_b64, mimes, doc_type
+                                        strict_rent_ref = (
+                                            verify_rent_from_rent_box_strictly(
+                                                api_key, images_b64, mimes, doc_type
+                                            )
                                         )
                                         strict_str = (strict_rent_ref or "").strip()
-                                        if strict_str and strict_str not in ("0", "0원", "해당없음", "-", "없음"):
+                                        if strict_str and strict_str not in (
+                                            "0",
+                                            "0원",
+                                            "해당없음",
+                                            "-",
+                                            "없음",
+                                        ):
                                             try:
-                                                strict_num = int(re.sub(r"\D", "", strict_str) or 0)
+                                                strict_num = int(
+                                                    re.sub(r"\D", "", strict_str) or 0
+                                                )
                                             except ValueError:
                                                 strict_num = None
 
-                                    if strict_num is not None and 0 < strict_num < 5_000_000:
+                                    if (
+                                        strict_num is not None
+                                        and 0 < strict_num < 5_000_000
+                                    ):
                                         row["contract_value"] = str(strict_num)
                                         name_revised["월세"] = True
-                                    elif strict_num is not None and strict_num >= 5_000_000:
+                                    elif (
+                                        strict_num is not None
+                                        and strict_num >= 5_000_000
+                                    ):
                                         result["human_review"] = True
-                                        reason = (result.get("human_review_reason") or "").strip()
+                                        reason = (
+                                            result.get("human_review_reason") or ""
+                                        ).strip()
                                         if "월세 오독 의심" not in reason:
-                                            result["human_review_reason"] = (reason + "; 월세 오독 의심(보증금 전이)").strip(" ;")
+                                            result["human_review_reason"] = (
+                                                reason + "; 월세 오독 의심(보증금 전이)"
+                                            ).strip(" ;")
 
-                                st.caption(f"[debug] doc_type={doc_type} / ai_rent={contract_rent} / strict_rent={strict_str}")
+                                st.caption(
+                                    f"[debug] doc_type={doc_type} / ai_rent={contract_rent} / strict_rent={strict_str}"
+                                )
 
-                            def _apply_name_text_only(item_label: str, party: str) -> None:
+                            def _apply_name_text_only(
+                                item_label: str, party: str
+                            ) -> None:
                                 for row in result.get("items", []):
                                     if str(row.get("item", "")).strip() != item_label:
                                         continue
-                                    ref = extract_party_name_text_only(api_key, images_b64, mimes, party)
+                                    ref = extract_party_name_text_only(
+                                        api_key, images_b64, mimes, party
+                                    )
                                     if ref.get("ok") and ref.get("name"):
                                         row["contract_value"] = ref["name"]
                                         name_revised[item_label] = True
                                     else:
                                         result["human_review"] = True
-                                        reason = (result.get("human_review_reason") or "").strip()
+                                        reason = (
+                                            result.get("human_review_reason") or ""
+                                        ).strip()
                                         msg = f"{item_label} 텍스트 추출 실패(필기/서명 배제 정책)"
                                         if msg not in reason:
-                                            result["human_review_reason"] = (reason + "; " + msg).strip(" ;")
+                                            result["human_review_reason"] = (
+                                                reason + "; " + msg
+                                            ).strip(" ;")
                                     return
 
                             def _needs_name_fix(v: str) -> bool:
@@ -681,27 +816,41 @@ if analyze_clicked:
                             if detect_blank_form(result):
                                 result["blank_form"] = True
                                 result["human_review"] = True
-                                reason = (result.get("human_review_reason") or "").strip()
+                                reason = (
+                                    result.get("human_review_reason") or ""
+                                ).strip()
                                 msg = "빈 양식(템플릿): 입력값 없음"
                                 if msg not in reason:
-                                    result["human_review_reason"] = (reason + "; " + msg).strip(" ;")
+                                    result["human_review_reason"] = (
+                                        reason + "; " + msg
+                                    ).strip(" ;")
 
                             # 회차별 검증 요약 로그 수집
                             session_log = {
                                 "timestamp": ts,
                                 "document_id": document_id,
                                 "기타사항": "; ".join(
-                                    [f"{m['item_name']} 확인설명서 불일치" for m in result.get("cross_check_mismatches", [])]
+                                    [
+                                        f"{m['item_name']} 확인설명서 불일치"
+                                        for m in result.get(
+                                            "cross_check_mismatches", []
+                                        )
+                                    ]
                                 ),
                             }
                             for row in result["items"]:
                                 item_name = row.get("item", "")
                                 # decision_log에도 주민등록번호 원문은 남기지 않음
-                                if item_name in ("임대인 주민등록번호", "임차인 주민등록번호"):
+                                if item_name in (
+                                    "임대인 주민등록번호",
+                                    "임차인 주민등록번호",
+                                ):
                                     continue
                                 c_val = str(row.get("contract_value", "") or "").strip()
                                 u_val = _get_user_value_for_item(item_name, user_input)
-                                match_val, _ = _run_python_comparison(item_name, c_val, u_val)
+                                match_val, _ = _run_python_comparison(
+                                    item_name, c_val, u_val
+                                )
                                 if row.get("is_doc_mismatch"):
                                     status = "확인필요"
                                 elif match_val:
@@ -722,7 +871,11 @@ if analyze_clicked:
                             st.session_state["analysis_elapsed"] = elapsed
                         else:
                             st.error("데이터 구조화 실패")
-                            debug_fail = st.toggle("디버그 출력(PII 포함 가능) 보기", value=False, key="debug_fail")
+                            debug_fail = st.toggle(
+                                "디버그 출력(PII 포함 가능) 보기",
+                                value=False,
+                                key="debug_fail",
+                            )
                             if debug_fail:
                                 st.markdown("**AI 응답 전문:**")
                                 st.markdown(analysis or "(응답 없음)")
@@ -748,7 +901,9 @@ if st.session_state.get("analysis_done"):
         mismatch_log = []
         for i, r in enumerate(result.get("items", [])):
             p_item = parsed.get("items") or []
-            pc = str((p_item[i].get("contract_value") if i < len(p_item) else "") or "").strip()
+            pc = str(
+                (p_item[i].get("contract_value") if i < len(p_item) else "") or ""
+            ).strip()
             rc = str(r.get("contract_value", "") or "").strip()
             if pc != rc:
                 mismatch_log.append(f"{r.get('item', '')}: parsed≠result")
@@ -760,7 +915,11 @@ if st.session_state.get("analysis_done"):
         st.session_state.get("result", {}),
         st.session_state.get("user_input", {}),
         name_revised=st.session_state.get("name_revised", {}),
-        analysis_text=st.session_state.get("analysis_text") if st.session_state.get("debug_mode") else None,
+        analysis_text=(
+            st.session_state.get("analysis_text")
+            if st.session_state.get("debug_mode")
+            else None
+        ),
     )
     elapsed = st.session_state.get("analysis_elapsed", 0)
     st.caption(f"⏱️ 분석 소요 시간: {elapsed:.2f}초")

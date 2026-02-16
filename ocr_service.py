@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 try:
     import fitz
+
     HAS_PYMUPDF = True
 except ImportError:
     HAS_PYMUPDF = False
@@ -76,7 +77,9 @@ def _pick_pages(b64s, mimes, idxs):
     return [b64s[i] for i in idxs], [mimes[i] for i in idxs]
 
 
-def detect_rent_page_index(api_key: str, b64s: list[str], mimes: list[str]) -> int | None:
+def detect_rent_page_index(
+    api_key: str, b64s: list[str], mimes: list[str]
+) -> int | None:
     """
     월임대료/월차임 표가 있을 확률이 높은 페이지 index를 반환.
     비용 절감을 위해 페이지별로 짧은 판별만 수행.
@@ -91,7 +94,10 @@ def detect_rent_page_index(api_key: str, b64s: list[str], mimes: list[str]) -> i
 
     best_idx = None
     for i in range(len(b64s)):
-        parts = [judge_prompt, {"inline_data": {"mime_type": f"image/{mimes[i]}", "data": b64s[i]}}]
+        parts = [
+            judge_prompt,
+            {"inline_data": {"mime_type": f"image/{mimes[i]}", "data": b64s[i]}},
+        ]
         try:
             res = model.generate_content(parts, generation_config={"temperature": 0})
             out = (res.text or "").strip()
@@ -105,7 +111,9 @@ def detect_rent_page_index(api_key: str, b64s: list[str], mimes: list[str]) -> i
     return best_idx
 
 
-def extract_monthly_rent_onepass(api_key: str, b64s: list[str], mimes: list[str]) -> dict:
+def extract_monthly_rent_onepass(
+    api_key: str, b64s: list[str], mimes: list[str]
+) -> dict:
     """
     1회 호출로:
     - 월임대료 표가 있는 페이지인지 판별
@@ -125,8 +133,8 @@ def extract_monthly_rent_onepass(api_key: str, b64s: list[str], mimes: list[str]
         "3) 월임대료가 '없음/0/해당없음'이면 rent_num은 0.\n"
         "4) 절대로 임대보증금 금액을 월임대료로 쓰지 마라.\n"
         "5) 출력은 반드시 JSON 1줄만. 키는 found,page_index,rent_raw,rent_num.\n"
-        "예시: {\"found\":true,\"page_index\":2,\"rent_raw\":\"₩1,050,000\",\"rent_num\":1050000}\n"
-        "예시: {\"found\":false,\"page_index\":null,\"rent_raw\":\"\",\"rent_num\":null}"
+        '예시: {"found":true,"page_index":2,"rent_raw":"₩1,050,000","rent_num":1050000}\n'
+        '예시: {"found":false,"page_index":null,"rent_raw":"","rent_num":null}'
     )
 
     for i in range(len(b64s)):
@@ -166,7 +174,12 @@ def extract_monthly_rent_onepass(api_key: str, b64s: list[str], mimes: list[str]
             if digits:
                 rent_num = int(digits)
 
-        return {"found": True, "page_index": page_index, "rent_raw": rent_raw, "rent_num": rent_num}
+        return {
+            "found": True,
+            "page_index": page_index,
+            "rent_raw": rent_raw,
+            "rent_num": rent_num,
+        }
 
     return {"found": False, "page_index": None, "rent_raw": "", "rent_num": None}
 
@@ -192,9 +205,9 @@ def extract_party_name_text_only(
         "1) 반드시 '성명(법인명)' 입력칸 안의 인쇄/타이핑된 텍스트만 읽어라.\n"
         "2) 서명/필기/인감 글자는 절대 참고하지 마라.\n"
         "3) 인쇄/타이핑 텍스트가 없거나 값이 불확실하면 ok=false로 반환해라.\n"
-        "4) 출력은 JSON 한 줄만: {\"ok\":true|false,\"name\":\"...\"}\n"
-        "예: {\"ok\":true,\"name\":\"홍길동\"}\n"
-        "예: {\"ok\":false,\"name\":\"\"}"
+        '4) 출력은 JSON 한 줄만: {"ok":true|false,"name":"..."}\n'
+        '예: {"ok":true,"name":"홍길동"}\n'
+        '예: {"ok":false,"name":""}'
     )
 
     for i in range(len(b64s)):
