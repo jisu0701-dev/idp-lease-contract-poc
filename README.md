@@ -1,19 +1,18 @@
-> Workflow: document → extraction (Gemini Vision) → structured JSON → rule-based validation → Human-Review routing  
-> Note: This is not a model-training repo; it demonstrates production-like orchestration & safety patterns for DocAI.
-
-
-
 # Rental Contract Auto Verifier (IDP Lease Contract POC)
 
-A **Proof-of-Concept (POC)** Streamlit web app that extracts key fields from Korean lease contracts and validates them against user-provided checklist inputs.  
-It uses **Google Gemini Vision** to parse document content and highlights mismatches (e.g., deposit, address, contract period) in a human-review-friendly table.
+A **Proof-of-Concept (POC)** Streamlit web app that extracts key fields from Korean lease contracts (임대차 계약서) and validates them against user-provided checklist inputs.  
+It uses **Google Gemini Vision** (and PDF text-layer when available) to parse document content and highlights mismatches (e.g., deposit, address, contract period) in a human-review-friendly table.
+
+**Workflow**: document → extraction (text-layer / Gemini Vision) → structured JSON → rule-based validation → Human-Review routing  
+**Scope**: Not a model-training repo. Demonstrates orchestration, validation logic, and safety routing patterns for Document AI.
 
 ---
 
 ## What it does
 - Extracts key fields: address, deposit, monthly rent, contract period, landlord/tenant name, resident registration number (**handled carefully / masked where applicable**)
-- Compares **document values vs. checklist values** and shows match/mismatch results
+- Compares **document values vs. checklist values** and shows match/mismatch results (✅/❌)
 - Optional debug output (**may include PII if enabled**)
+- Routes uncertain/high-risk cases to **Human Review** instead of auto-approving
 
 ---
 
@@ -21,7 +20,7 @@ It uses **Google Gemini Vision** to parse document content and highlights mismat
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
-```
+
 Open: http://localhost:8501
 
 ---
