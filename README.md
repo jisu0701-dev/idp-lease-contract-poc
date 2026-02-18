@@ -8,7 +8,7 @@ This project is a **Proof-of-Concept (PoC)** to validate whether we can automate
 
 ## Background
 
-In guarantee underwriting, reviewers manually read unstructured documents such as lease contracts and brokerage "Explanation/Confirmation" forms, then retype the values into internal checklist systems. This manual work accounts for roughly **40%** of review time, and reviewers must cross-check inconsistencies across documents (deposit amount, address, contract period, etc.) by hand.
+In guarantee underwriting, reviewers manually read unstructured documents such as lease contracts and brokerage "Explanation/Confirmation" forms, then retype the values into internal checklist systems. This manual work accounts for roughly **70%** of review time, and reviewers must cross-check inconsistencies across documents (deposit amount, address, contract period, etc.) by hand.
 
 This PoC tests whether that workflow can shift to: **"AI drafts first, human verifies and corrects."**
 
@@ -100,7 +100,7 @@ This project is a Proof-of-Concept, not a production product.
 
 ## 배경
 
-전세대출 서류심사 및 임대차 반환보증 심사에서 심사자는 계약서·확인설명서 등 비정형 서류를 육안으로 확인한 뒤, 전산 체크리스트에 수기로 입력합니다. 이 과정이 심사 시간의 약 40%를 차지하며, 서류 간 불일치(보증금·주소·계약기간 등)를 사람이 일일이 대조해야 합니다.
+전세대출 서류심사 및 임대차 반환보증 심사에서 심사자는 계약서·확인설명서 등 비정형 서류를 육안으로 확인한 뒤, 전산 체크리스트에 수기로 입력합니다. 이 과정이 심사 시간의 약 70%를 차지하며, 서류 간 불일치(보증금·주소·계약기간 등)를 사람이 일일이 대조해야 합니다.
 
 이 PoC는 그 대조 과정을 "AI가 초안을 쓰고, 사람이 확인·교정"하는 구조로 바꿀 수 있는지 실험합니다.
 
