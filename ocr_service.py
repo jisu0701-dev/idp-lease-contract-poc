@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import json
 import re
 import google.generativeai as genai
 from typing import Any, Optional
@@ -461,3 +462,149 @@ def verify_rent_from_rent_box_strictly(api_key: str, b64s, mimes, doc_type: str)
     res = model.generate_content(parts, generation_config={"temperature": 0})
     out = (res.text or "").strip().split("\n")[0].strip()
     return out if out else "0"
+
+
+def verify_contract_period_strictly(
+    api_key: str, b64s: list, mimes: list, doc_type: str
+) -> dict:
+    """
+    계약기간(임대차기간)을 정밀 재추출. 시작일·종료일 2개를 YYYY-MM-DD로 반환.
+    반환: {"ok": True, "start": "YYYY-MM-DD", "end": "YYYY-MM-DD"} 또는 {"ok": False, "start": "", "end": ""}
+    """
+    genai.configure(api_key=api_key.strip())
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    prompt = """
+너는 임대차계약서에서 '계약기간(임대차기간)'을 정밀 판독하는 OCR 엔진이다.
+규칙:
+1) '임대차 기간/임대차기간/계약기간/인도일로부터' 문장에서 시작일과 종료일(만기일) 두 날짜를 모두 찾아라.
+2) 예: '2025년 5월 16일부터 2027년 5월 15일까지' → start=2025-05-16, end=2027-05-15
+3) 날짜는 YYYY-MM-DD로 정규화. 두 날짜를 못 찾으면 ok=false.
+4) JSON 한 줄만: {"ok":true,"start":"YYYY-MM-DD","end":"YYYY-MM-DD"} 또는 {"ok":false,"start":"","end":""}
+"""
+    parts = [prompt]
+    for i, b in enumerate(b64s):
+        parts.append({"inline_data": {"mime_type": f"image/{mimes[i]}", "data": b}})
+    try:
+        res = model.generate_content(parts, generation_config={"temperature": 0})
+        out = (res.text or "").strip()
+    except Exception:
+        out = ""
+    m = re.search(r"\{[^{}]*\}", out)
+    if not m:
+        return {"ok": False, "start": "", "end": ""}
+    try:
+        data = json.loads(m.group(0))
+        ok = bool(data.get("ok"))
+        s = (data.get("start") or "").strip()
+        e = (data.get("end") or "").strip()
+        if ok and re.fullmatch(r"20\d{2}-\d{2}-\d{2}", s) and re.fullmatch(r"20\d{2}-\d{2}-\d{2}", e):
+            return {"ok": True, "start": s, "end": e}
+    except Exception:
+        pass
+    return {"ok": False, "start": "", "end": ""}
+
+
+# ============================================================
+# v1.1 추가: 특약(ConSpecial) 페이지 탐지 + 값 추출
+# ============================================================
+
+import json as _json
+
+_SPECIAL_TERMS_TEXT_PAT = re.compile(r"(특약\s*사항|특약\s*\d+\s*:)", re.IGNORECASE)
+
+CONSPECIAL_EXTRACT_PROMPT = r"""
+너는 임대차계약서의 '특약사항' 페이지에서 본문(제1조~제N조)과 다를 수 있는 값을 추출하는 엔진이다.
+
+**추출 대상**: 보증금, 월세, 계약기간 — 이 3개만.
+
+**핵심 규칙**:
+1) 특약 텍스트에 보증금/월세/계약기간 관련 금액이나 날짜가 **명시적으로 적혀 있을 때만** 추출해라.
+   - 예: "보증금을 1억 3천만원으로 변경", "월세 40만원으로 조정", "계약기간을 2025.05.16~2026.05.15로 한다"
+   - 예: "임대차보증금 금일억삼천만원", "차임(월세) 금사십만원"
+2) 명시적으로 안 적혀 있으면 반드시 null. 추측 금지. 본문 값 재사용 금지.
+3) 보증금/월세 출력 형식: 숫자만 (예: "130000000", "400000"). 한글 금액이면 숫자로 환산.
+4) 월세가 "없음/전세/0원" 의미면 "0".
+5) 계약기간: "YYYY-MM-DD ~ YYYY-MM-DD" 형식. 날짜 2개가 명시 안 돼있으면 null.
+6) JSON만 출력. 코드펜스/설명글/마크다운 절대 금지.
+
+출력:
+{"items":[{"item":"보증금","ConSpecial_value":null},{"item":"월세","ConSpecial_value":null},{"item":"계약기간","ConSpecial_value":null}]}
+"""
+
+
+def detect_special_terms_page_indices(
+    images_b64: list[str], mimes: list[str],
+    pdf_bytes: Optional[bytes] = None,
+) -> list[int]:
+    """
+    특약사항 페이지 인덱스를 반환.
+    PDF 텍스트 레이어가 있으면 텍스트로 판별(API 호출 0).
+    """
+    if pdf_bytes is not None and HAS_PYMUPDF:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        idxs = []
+        for i in range(len(doc)):
+            text = (doc[i].get_text("text") or "").strip()
+            if text and _SPECIAL_TERMS_TEXT_PAT.search(text):
+                idxs.append(i)
+        doc.close()
+        if idxs:
+            return idxs
+    # 텍스트 레이어 없으면: 이미지 개수 기준 추정 (API 절약)
+    n = len(images_b64)
+    if n == 10:
+        return [7]
+    if n > 6:
+        return [n - 3]
+    return []
+
+
+def extract_conspecial_values(
+    api_key: str, images_b64: list[str], mimes: list[str],
+    special_idxs: list[int],
+) -> list[dict]:
+    """
+    특약 페이지만 Gemini에 넣어서 보증금/월세/계약기간의 ConSpecial_value를 추출.
+    반환: [{"item": "보증금", "ConSpecial_value": "150000000"}, ...] (없으면 null)
+    """
+    if not special_idxs:
+        return []
+    sub_b64 = [images_b64[i] for i in special_idxs if 0 <= i < len(images_b64)]
+    sub_mime = [mimes[i] for i in special_idxs if 0 <= i < len(mimes)]
+    if not sub_b64:
+        return []
+
+    genai.configure(api_key=api_key.strip())
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    parts: list[Any] = [CONSPECIAL_EXTRACT_PROMPT]
+    for j, b in enumerate(sub_b64):
+        parts.append({
+            "inline_data": {
+                "mime_type": f"image/{sub_mime[j]}",
+                "data": b,
+            }
+        })
+    try:
+        res = model.generate_content(parts, generation_config={"temperature": 0})
+        raw = (res.text or "").strip()
+    except Exception:
+        return []
+
+    m = re.search(r"\{", raw)
+    if not m:
+        return []
+    depth = 0
+    start = m.start()
+    for i in range(start, len(raw)):
+        if raw[i] == "{":
+            depth += 1
+        elif raw[i] == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    data = _json.loads(raw[start:i+1])
+                    items = data.get("items")
+                    return items if isinstance(items, list) else []
+                except Exception:
+                    return []
+    return []

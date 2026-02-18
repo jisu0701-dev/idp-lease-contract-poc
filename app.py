@@ -33,6 +33,8 @@ from comparators import (
 from document_logic import build_final_items, parse_result_json
 from ocr_service import (
     call_gemini_vision,
+    detect_special_terms_page_indices,
+    extract_conspecial_values,
     extract_monthly_rent_onepass,
     extract_party_name_text_only,
     extract_pdf_text,
@@ -41,6 +43,7 @@ from ocr_service import (
     has_text_layer,
     pdf_to_images_bytes,
     verify_field_strictly,
+    verify_contract_period_strictly,
     detect_doc_type_from_vision,
     verify_rent_from_rent_box_strictly,
 )
@@ -446,6 +449,15 @@ def render_result_with_icons(
         etc_parts.append(
             f"⚠️ 확인설명서 내용 불일치: [{name}] 본문({cv_display}) vs 확인설명서({chv_display})"
         )
+    # v1.1: 특약 불일치도 기타사항에 표시 (특약값만 표시, 본문값은 이미 테이블에 있음)
+    conspecial_mismatches = result.get("conspecial_mismatches", [])
+    for m in conspecial_mismatches:
+        name = m.get("item_name", "")
+        csv = m.get("conspecial_value", "")
+        csv_display = _format_amount_for_display(csv) if name in ("보증금", "월세") else csv
+        etc_parts.append(
+            f"⚠️ 특약 불일치: [{name}] 특약 기재값 → {csv_display}"
+        )
     if human_review and not cross_check_mismatches:
         etc_parts.append("Human-Review 필요")
     elif human_review and cross_check_mismatches:
@@ -610,6 +622,56 @@ if analyze_clicked:
                             api_key, images_b64, mimes
                         )
                         parsed = parse_result_json(analysis)
+
+                        # v1.1: 특약 페이지 탐지 + 특약값 추출 → parsed에 머지
+                        if parsed and parsed.get("items"):
+                            _pdf_bytes = None
+                            for _f in files_to_use:
+                                if (_f.name or "").lower().endswith(".pdf"):
+                                    _pdf_bytes = _f.read()
+                                    _f.seek(0)
+                                    break
+                            special_idxs = detect_special_terms_page_indices(
+                                images_b64, mimes, pdf_bytes=_pdf_bytes,
+                            )
+                            if special_idxs:
+                                cs_items = extract_conspecial_values(
+                                    api_key, images_b64, mimes, special_idxs,
+                                )
+                                for row in parsed["items"]:
+                                    row.setdefault("ConSpecial_value", None)
+                                    item_name = row.get("item", "")
+                                    for cs in cs_items:
+                                        if (cs.get("item") or "").strip() == item_name:
+                                            cv = cs.get("ConSpecial_value")
+                                            if cv is not None and str(cv).strip() and str(cv).strip().lower() != "null":
+                                                row["ConSpecial_value"] = str(cv).strip()
+                                            break
+                            else:
+                                for row in parsed["items"]:
+                                    row.setdefault("ConSpecial_value", None)
+
+                        # v1.1: 계약기간 본문이 불완전(날짜 1개만)이면 strict 재추출
+                        # 중요: 특약 페이지를 제외한 이미지만 넘겨야 특약 만기일이 본문으로 오염되지 않음
+                        if parsed and parsed.get("items"):
+                            from comparators import _parse_dates_from_period_text
+                            for row in parsed["items"]:
+                                if row.get("item", "").strip() != "계약기간":
+                                    continue
+                                cv = str(row.get("contract_value", "") or "").strip()
+                                s, e = _parse_dates_from_period_text(cv)
+                                if not (s and e):
+                                    # 특약 페이지 제외한 이미지만 선별
+                                    special_set = set(special_idxs) if special_idxs else set()
+                                    contract_only_b64 = [b for i, b in enumerate(images_b64) if i not in special_set]
+                                    contract_only_mimes = [m for i, m in enumerate(mimes) if i not in special_set]
+                                    if contract_only_b64:
+                                        ref = verify_contract_period_strictly(
+                                            api_key, contract_only_b64, contract_only_mimes, "unknown"
+                                        )
+                                        if ref.get("ok") and ref.get("start") and ref.get("end"):
+                                            row["contract_value"] = f"{ref['start']} ~ {ref['end']}"
+                                break
 
                         name_revised: dict[str, bool] = {}
                         log_rows: list[dict[str, Any]] = []

@@ -170,9 +170,65 @@ def build_final_items(parsed: dict[str, Any]) -> dict[str, Any]:
                     "checklist_value": ch,
                 }
             )
+
+    # ============================================================
+    # v1.1 추가: 특약(ConSpecial_value) vs 본문(contract_value) 불일치 검사
+    # ============================================================
+    conspecial_mismatches: list[dict[str, str]] = []
+    for row in items:
+        item_name = row.get("item", "")
+        cs_val = row.get("ConSpecial_value")
+        if cs_val is None or str(cs_val).strip() == "" or str(cs_val).strip().lower() == "null":
+            continue
+        contract_value = str(row.get("contract_value", "") or "").strip()
+        cs_str = str(cs_val).strip()
+
+        mismatch = False
+        if item_name in ("보증금", "월세"):
+            contract_num = _parse_amount_from_text(contract_value, item_name)
+            cs_num = _parse_amount_from_text(cs_str, item_name)
+            if contract_num is not None and cs_num is not None and contract_num != cs_num:
+                mismatch = True
+        elif item_name == "계약기간":
+            from comparators import _parse_dates_from_period_text
+            c_start, c_end = _parse_dates_from_period_text(contract_value)
+            s_start, s_end = _parse_dates_from_period_text(cs_str)
+            # 케이스1: 둘 다 시작/종료 2개씩 있으면 전체 비교
+            if c_start and c_end and s_start and s_end:
+                if c_start != s_start or c_end != s_end:
+                    mismatch = True
+            # 케이스2: 본문은 불완전하지만 특약은 파싱 가능 → 비교 가능한 날짜끼리 비교
+            elif s_start and s_end:
+                # 본문에서 잡힌 날짜가 1개라도 있으면 그것과 비교
+                if c_end and c_end != s_end:
+                    mismatch = True
+                elif c_start and c_start != s_start:
+                    mismatch = True
+                elif not c_start and not c_end:
+                    # 본문 날짜가 아예 없으면 → 특약값이 존재한다는 것 자체가 불일치 신호
+                    mismatch = True
+
+        if mismatch:
+            row["is_doc_mismatch"] = True
+            conspecial_mismatches.append({
+                "item_name": item_name,
+                "contract_value": contract_value,
+                "conspecial_value": cs_str,
+            })
+
+    human_review = bool(mismatches) or bool(conspecial_mismatches)
+    human_review_reason = "문서 간 불일치" if mismatches else ""
+    if conspecial_mismatches:
+        cs_reason = "특약 vs 본문 불일치"
+        if human_review_reason:
+            human_review_reason = human_review_reason + "; " + cs_reason
+        else:
+            human_review_reason = cs_reason
+
     return {
         "items": items,
-        "human_review": bool(mismatches),
-        "human_review_reason": "문서 간 불일치" if mismatches else "",
+        "human_review": human_review,
+        "human_review_reason": human_review_reason,
         "cross_check_mismatches": mismatches,
+        "conspecial_mismatches": conspecial_mismatches,
     }
