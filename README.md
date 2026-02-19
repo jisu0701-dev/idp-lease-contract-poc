@@ -1,106 +1,14 @@
-# Lease Contract Auto-Verification PoC
-
-Upload a jeonse/monthly-rent residential lease contract (PDF/images), and the AI extracts key fields and automatically compares them against the checklist values entered by a reviewer.
-
-This project is a **Proof-of-Concept (PoC)** to validate whether we can automate the **document cross-checking work** that happens every day in financial guarantee underwriting (rent deposit return guarantee).
-
----
-
-## Background
-
-In guarantee underwriting, reviewers manually read unstructured documents such as lease contracts and brokerage "Explanation/Confirmation" forms, then retype the values into internal checklist systems. This manual work accounts for roughly **70%** of review time, and reviewers must cross-check inconsistencies across documents (deposit amount, address, contract period, etc.) by hand.
-
-This PoC tests whether that workflow can shift to: **"AI drafts first, human verifies and corrects."**
-
----
-
-## What It Does
-
-1. **Extraction**: Automatically extracts address, deposit, monthly rent, contract period, landlord/tenant names and dates of birth from the contract PDF/images.
-2. **Cross-Document Validation**: If an "Explanation/Confirmation" document is attached, it automatically compares planned transaction amount and address against the main contract.
-3. **Special Terms Mismatch Detection (v1.1)**: Detects and flags cases where the special terms section states a different deposit/monthly rent/contract period than the main body.
-4. **User Input Comparison**: Compares each extracted field with the reviewer-entered checklist values and marks ✅/❌.
-5. **Human Review Routing**: If the model is uncertain or there is any cross-document mismatch, it routes the case to a human instead of auto-confirming.
-
----
-
-## How to Run
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-Open: http://localhost:8501
-
-You need a Gemini API Key issued from Google AI Studio.
-
----
-
-## Project Structure
-
-| File | Role |
-|------|------|
-| **app.py** | Streamlit UI: input form, file upload, result table rendering |
-| **ocr_service.py** | PDF text-layer extraction / image rendering + Gemini Vision calls, special-terms page detection & extraction |
-| **document_logic.py** | JSON parsing, final item construction, cross-check logic for Explanation/Confirmation + special terms |
-| **comparators.py** | Deterministic rule engine for comparing address/amount/dates/names/identity fields |
-| **pii_mask.py** | Utility for masking resident registration numbers (RRN) |
-| **check_models.py** | Helper to verify Gemini API connectivity |
-
----
-
-## Design Principles
-
-**Separation of Reading vs Decision-Making**: Gemini Vision is used only for "reading" (unstructured documents → structured JSON). "Decision-making" (match/mismatch, numeric comparison, address normalization) is handled by a deterministic Python rule engine. This keeps the comparison logic reusable even if the OCR engine is replaced.
-
-**Preventing Special-Terms Contamination (v1.1)**: During contract-period re-extraction, special-terms pages are excluded and only the main body pages are used, preventing special-terms end dates from contaminating the main contract values.
-
----
-
-## v1.1 Changes
-
-- Automatic detection of special-terms pages (text-layer first; if unavailable, position-based estimation)
-- Separate extraction of deposit/monthly rent/contract period from special terms and comparison against the main body
-- If main body vs special terms mismatch is found: show it under "Other Notes" + route to Human Review
-- Exclude special-terms pages when retrying contract-period extraction (prevents contamination)
-
----
-
-## Known Limitations
-
-- **Korean Name OCR**: Gemini Vision does not reliably recognize Korean names (e.g., "안지수" → "인수지"). Prompt tuning is not sufficient; a dedicated OCR model is required.
-- **Numeric Misreads**: Confusions occur in dates of birth and the first digits of RRNs (e.g., 9↔0, 6↔0). The result is sensitive to image resolution.
-- **Non-Deterministic Outputs**: Even with identical images and identical settings, Gemini Vision may produce different results. While temperature=0 enforces greedy decoding for text generation, variation in the image encoding stage cannot be fully controlled.
-- **Template Dependency**: Tested on e-contract and standard residential lease templates. Handwritten and non-standard formats are not supported.
-
-These limitations support the conclusion that a general-purpose LLM + prompts alone cannot reach finance-grade accuracy, and that a dedicated OCR model plus a self-learning pipeline is required.
-
----
-
-## Personal Data Notice
-
-- Do not upload or commit real contracts containing personal data (names, addresses, RRNs).
-- Use synthetic data or fully de-identified samples only.
-- decision_log.csv and feedback_log.csv are local-only and must not be committed.
-
----
-
-This project is a Proof-of-Concept, not a production product.
-
----
-
 # 임대차 계약서 자동 검증 PoC
 
 전세·월세 임대차계약서를 업로드하면, AI가 주요 항목을 추출하고 심사자가 입력한 체크리스트 값과 자동 비교합니다.
 
-이 프로젝트는 금융권 전세대출 서류심사 및 임대차 반환보증 심사 실무에서 매일 반복되는 **서류 대조 업무**를 자동화할 수 있는지 검증하기 위해 만든 **개념증명(PoC)**입니다.
+이 프로젝트는 금융권 반환보증 심사 실무에서 매일 반복되는 **서류 대조 업무**를 자동화할 수 있는지 검증하기 위해 만든 **개념증명(PoC)**입니다.
 
 ---
 
 ## 배경
 
-전세대출 서류심사 및 임대차 반환보증 심사에서 심사자는 계약서·확인설명서 등 비정형 서류를 육안으로 확인한 뒤, 전산 체크리스트에 수기로 입력합니다. 이 과정이 심사 시간의 약 70%를 차지하며, 서류 간 불일치(보증금·주소·계약기간 등)를 사람이 일일이 대조해야 합니다.
+반환보증 심사에서 심사자는 계약서·확인설명서 등 비정형 서류를 육안으로 확인한 뒤, 전산 체크리스트에 수기로 입력합니다. 이 과정이 심사 시간의 약 40%를 차지하며, 서류 간 불일치(보증금·주소·계약기간 등)를 사람이 일일이 대조해야 합니다.
 
 이 PoC는 그 대조 과정을 "AI가 초안을 쓰고, 사람이 확인·교정"하는 구조로 바꿀 수 있는지 실험합니다.
 
@@ -117,7 +25,6 @@ This project is a Proof-of-Concept, not a production product.
 ---
 
 ## 실행 방법
-
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
