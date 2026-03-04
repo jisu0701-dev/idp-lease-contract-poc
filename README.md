@@ -34,6 +34,18 @@ streamlit run app.py
 
 Google AI Studio에서 발급한 Gemini API Key가 필요합니다.
 
+예시 환경 변수 설정:
+
+```bash
+export GEMINI_API_KEY="your_api_key"
+```
+
+앱 실행 전 모델 연결만 확인하려면 아래 명령으로 사전 점검할 수 있습니다.
+
+```bash
+python check_models.py
+```
+
 ---
 
 ## 프로젝트 구조
